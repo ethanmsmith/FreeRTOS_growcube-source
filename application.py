@@ -15,8 +15,8 @@ from ariadne import MutationType, gql, QueryType, make_executable_schema, graphq
 from schema import type_defs
 
 # These are the collections (tables) we are dealing with
-PLANTS_COLLECTION = "plants"
-SETTINGS_COLLECTION = "settings"
+PLANT_COLLECTION = "plants"
+DEVICE_COLLECTION = "devices"
 
 # https://blog.logrocket.com/build-graphql-api-python-flask-ariadne/
 query = QueryType()
@@ -50,8 +50,8 @@ CORS(application)
 delay = int(1000)
 
 # Creating or accessing database
-plantsdb = database[PLANTS_COLLECTION]
-settingsdb = database[SETTINGS_COLLECTION]
+plantsdb = database[PLANT_COLLECTION]
+devicesdb = database[DEVICE_COLLECTION]
 
 # https://blog.logrocket.com/build-graphql-api-python-flask-ariadne/
 # https://pymongo.readthedocs.io/en/stable/api/pymongo/cursor.html
@@ -62,14 +62,15 @@ settingsdb = database[SETTINGS_COLLECTION]
 def plants(*_):
     return list(plantsdb.find({}))
 
+@query.field("devices")
+def devices(*_):
+    return list(devicesdb.find({}))
 
-@query.field("settings")
-def settings(*_):
-    return list(settingsdb.find({}))
+@query.field("device")
+def device(_, info, id):
+    return devicesdb.find_one({"_id": ObjectId(id)})
 
 # plant resolver (add new  place)
-
-
 @mutation.field("add_plant")
 def add_plant(_, info, commonName, genus, species):
     document = plantsdb.insert_one(
@@ -77,33 +78,30 @@ def add_plant(_, info, commonName, genus, species):
     )
     return plantsdb.find_one({"_id": ObjectId(document.inserted_id)})
 
-
-@mutation.field("add_settings")
-def add_settings(_, info, system, source, drain, food, air, LED):
-    document = settingsdb.insert_one(
+@mutation.field("add_device")
+def add_device(_, info, system, source, drain, food, air, LED):
+    document = devicesdb.insert_one(
         {"system": system, "source": source, "drain": drain,
             "food": food, "air": air, "LED": LED}
     )
-    return settingsdb.find_one({"_id": ObjectId(document.inserted_id)})
+    return devicesdb.find_one({"_id": ObjectId(document.inserted_id)})
 
-
-@mutation.field("update_settings")
-def update_settings(_, info, id, system, source, drain, food, air, LED):
-    document = settingsdb.update_one(
+@mutation.field("update_device")
+def update_device(_, info, id, system, source, drain, food, air, LED):
+    document = devicesdb.replace_one(
         {"_id": ObjectId(id)},
         {"system": system, "source": source, "drain": drain,
          "food": food, "air": air, "LED": LED},
         upsert=True
     )
-    return settingsdb.find_one({"_id": ObjectId(document.inserted_id)})
 
+    id = document.upserted_id if document.upserted_id else id
+    return devicesdb.find_one({"_id": ObjectId(id)})
 
 schema = make_executable_schema(type_defs, [query, mutation])
 
 # The type of endpoint (get, set, etc.) is usually just distinguished by the type of request (GET, POST, PUT, etc.)
 # Create a GraphQL Playground UI for the GraphQL schema
-
-
 @application.route("/graphql", methods=["GET"])
 def graphql_playground():
     # Playground accepts GET requests only.
@@ -113,8 +111,6 @@ def graphql_playground():
     return PLAYGROUND_HTML
 
 # Create a GraphQL endpoint for executing GraphQL queries
-
-
 @application.route("/graphql", methods=["POST"])
 def graphql_server():
     data = request.get_json()
@@ -123,58 +119,9 @@ def graphql_server():
     status_code = 200 if success else 400
     return jsonify(result), status_code
 
-
-@application.route('/device/<device_id>', methods=['POST'])
-def flask_set_delay(device_id):
-    body = request.json
-    response = make_response()
-    delay_on = body["delay_on"]
-    delay_off = body["delay_off"]
-    pulse_width = body["pulse_width"]
-
-    try:
-        settings.update_many({"_id": ObjectId(device_id)}, {
-            "$set": {
-                "system.delay_on": delay_on,
-                "system.pulse_width": pulse_width,
-                "system.delay_off": delay_off
-            },
-        },
-            upsert=True)
-        response.status_code = 200
-    except:
-        response = make_response("Invalid request")
-        response.status_code = 400
-
-    return response
-
-# Should not be a POST for a Get command. Should only be GET
-
-
-@application.route('/device/<device_number>', methods=['GET'])
-def flask_query_delay(device_number):
-
-    try:
-        res = settings.find_one({"_id": ObjectId(device_number)})
-    except:
-        response = make_response(
-            "Device id must be a valid 24 character hex string")
-        response.status_code = 400
-
-    if 'res' in locals():
-        response_body = json.loads(json_util.dumps(res))
-        print(response_body)
-        response = make_response(response_body)
-        response.content_type = "Application/JSON"
-        response.status_code = 200
-
-    return response
-
-
 @application.route('/', methods=['GET'])
 def welcome_screen():
     return current_app.send_static_file("App.html")
-
 
 # run the app.
 if __name__ == "__main__":

@@ -5,7 +5,8 @@ type_defs = gql(
     """
     type Query {
         plants: [Plant]
-        settings: [Settings]
+        devices: [Device]
+        device(id: ID!): Device
     }
 
     type Plant {
@@ -14,7 +15,7 @@ type_defs = gql(
         species: String!
     }
 
-    type Settings {
+    type Device {
         system: Config
         source: Config
         drain: Config
@@ -37,8 +38,8 @@ type_defs = gql(
 
     type Mutation{ 
         add_plant( commonName: String!, genus: String!, species: String! ): Plant
-        add_settings( system: ConfigInput!, source: ConfigInput, drain: ConfigInput, food: ConfigInput, air: ConfigInput, LED: ConfigInput ): Settings
-        update_settings( id: ID!, system: ConfigInput!, source: ConfigInput, drain: ConfigInput, food: ConfigInput, air: ConfigInput, LED: ConfigInput ): Settings
+        add_device( system: ConfigInput!, source: ConfigInput, drain: ConfigInput, food: ConfigInput, air: ConfigInput, LED: ConfigInput ): Device
+        update_device( id: ID!, system: ConfigInput!, source: ConfigInput, drain: ConfigInput, food: ConfigInput, air: ConfigInput, LED: ConfigInput ): Device
     }
     """
 )
