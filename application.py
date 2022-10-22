@@ -43,7 +43,7 @@ if __name__ == "__main__":
 # Thanks: https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/create-deploy-python-flask.html
 
 # EB looks for an 'application' callable by default.
-application = Flask(__name__)
+application = Flask(__name__, static_url_path='')
 #application.config['SERVER_NAME'] = 'localhost:5000'
 CORS(application)
 
@@ -55,9 +55,8 @@ devicesdb = database[DEVICE_COLLECTION]
 
 # https://blog.logrocket.com/build-graphql-api-python-flask-ariadne/
 # https://pymongo.readthedocs.io/en/stable/api/pymongo/cursor.html
+
 # Define resolvers
-
-
 @query.field("plants")
 def plants(*_):
     return list(plantsdb.find({}))
@@ -100,7 +99,6 @@ def update_device(_, info, id, system, source, drain, food, air, LED):
 
 schema = make_executable_schema(type_defs, [query, mutation])
 
-# The type of endpoint (get, set, etc.) is usually just distinguished by the type of request (GET, POST, PUT, etc.)
 # Create a GraphQL Playground UI for the GraphQL schema
 @application.route("/graphql", methods=["GET"])
 def graphql_playground():
@@ -120,7 +118,7 @@ def graphql_server():
     return jsonify(result), status_code
 
 @application.route('/', methods=['GET'])
-def welcome_screen():
+def vue():
     return current_app.send_static_file("App.html")
 
 # run the app.
