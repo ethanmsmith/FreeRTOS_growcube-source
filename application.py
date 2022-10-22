@@ -67,12 +67,12 @@ def devices(*_):
     return list(devicesdb.find({}))
 
 @query.field("device")
-def device(_, info, id):
+def device(*_, id):
     return devicesdb.find_one({"_id": ObjectId(id)})
 
 # plant resolver (add new  place)
 @mutation.field("add_plant")
-def add_plant(_, info, commonName, genus, species):
+def add_plant(*_, commonName, genus, species):
     document = plantsdb.insert_one(
         {"commonName": commonName, "genus": genus, "species": species}
     )
