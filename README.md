@@ -3,22 +3,28 @@
 # Installing
 
 ## Prereqs
-- Python
-- Pip
+- python3
+- pip
 - npm
+- mongodb
 
 ## Command
 `pip install -r requirements.txt`
 
+## Mongo
+Install the [MongoDB for VS Code](https://marketplace.visualstudio.com/items?itemName=mongodb.mongodb-vscode) extension
+Connect to local mongodb server (Default is localhost:27017)
+Open the `setup.mongodb` file and run it with the play button in the top right of the editor window
+
 # Development
+## Serve
+`python3 ./application.py`
 
 ## Python
-`python3 ./application.py`
 Access at http://localhost:5000
 
 ## Vue
-`npx serve`
-Access at http://localhost:3000/App
+Access at http://localhost:5000/
 Next I will be making my own custom PCB for the ESP32 through Altium CircuitMaker. Because the ESP32 allows for PWM control on any GPIO pin, the swap from the Teensy 4.1 to the ESP32 in regards to the hardware layer should be straight forward. 
 
 # The Python in a Flask
@@ -28,34 +34,28 @@ The databasing itself is handled through a python-flask deployment. The server c
 JSON sent from server to growpod:
 ```
 {
-    "id": 1,
-    "delay_on": 1000,
-    "delay_off": 1000,
-    "pulse_width": 255,
+    "_id": $oid,
+    "system": {
+        "delay_on": int,
+        "delay_off": int,
+        "pulse_width": int,
+    },
     "source": {
-        "delay_on": 0,
-        "delay_off": 0,
-        "pulse_width": 0
+        "delay_on": int,
+        "delay_off": int,
+        "pulse_width": int
     },
     "drain": {
-        "delay_on": 0,
-        "delay_off": 0,
-        "pulse_width": 0
+       ...
     },
     "food": {
-        "delay_on": 0,
-        "delay_off": 0,
-        "pulse_width": 0
+       ...
     },
     "air": {
-        "delay_on": 0,
-        "delay_off": 0,
-        "pulse_width": 0
+       ...
     },
     "LED": {
-        "delay_on": 0,
-        "delay_off": 0,
-        "pulse_width": 0
+       ...
     }
 }
 ```

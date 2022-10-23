@@ -1,39 +1,25 @@
-from plistlib import UID
-from urllib import response
-from bson import ObjectId, json_util
-import json
-import bson
-from flask import Flask, Response, jsonify, make_response, render_template, request, current_app, g, current_app
-from flask_restful import Resource, Api
-from flask_cors import CORS
+from bson import ObjectId
+from flask import Flask, jsonify, request, current_app, current_app
 from pymongo import MongoClient
-import sqlite3 as sl
-import json
-from ariadne.asgi import GraphQL
 from ariadne.constants import PLAYGROUND_HTML
-from ariadne import MutationType, gql, QueryType, make_executable_schema, graphql_sync
+from ariadne import MutationType, QueryType, make_executable_schema, graphql_sync
 from schema import type_defs
 
 # These are the collections (tables) we are dealing with
 PLANT_COLLECTION = "plants"
 DEVICE_COLLECTION = "devices"
-
-# https://blog.logrocket.com/build-graphql-api-python-flask-ariadne/
-query = QueryType()
-mutation = MutationType()
-
+HOST = "0.0.0.0"
 
 def get_database():
-
     # Provide the mongodb atlas url to connect python to mongodb using pymongo
     CONNECTION_STRING = "mongodb://localhost:27017"
-    DATABASE = "grow_cube"
-    # Create a connection using MongoClient. You can import MongoClient or use pymongo.MongoClient
+    DATABASE = "growCube"
+
+    # Create a connection using MongoClient
     client = MongoClient(CONNECTION_STRING)
 
-    # Create the database for our example (we will use the same database throughout the tutorial
+    # Create the database for our example
     return client[DATABASE]
-
 
 # This is added so that many files can reuse the function get_database()
 if __name__ == "__main__":
@@ -41,20 +27,19 @@ if __name__ == "__main__":
     database = get_database()
 
 # Thanks: https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/create-deploy-python-flask.html
+# https://blog.logrocket.com/build-graphql-api-python-flask-ariadne/
 
-# EB looks for an 'application' callable by default.
+# `static_url_base_path` tells the server to serve the /static directory at the root path /
 application = Flask(__name__, static_url_path='')
-#application.config['SERVER_NAME'] = 'localhost:5000'
-CORS(application)
 
-delay = int(1000)
-
-# Creating or accessing database
+# Database collections
 plantsdb = database[PLANT_COLLECTION]
 devicesdb = database[DEVICE_COLLECTION]
 
-# https://blog.logrocket.com/build-graphql-api-python-flask-ariadne/
-# https://pymongo.readthedocs.io/en/stable/api/pymongo/cursor.html
+# GraphQL config
+query = QueryType()
+mutation = MutationType()
+schema = make_executable_schema(type_defs, [query, mutation])
 
 # Define resolvers
 @query.field("plants")
@@ -69,7 +54,7 @@ def devices(*_):
 def device(*_, id):
     return devicesdb.find_one({"_id": ObjectId(id)})
 
-# plant resolver (add new  place)
+# Define mutations
 @mutation.field("add_plant")
 def add_plant(*_, commonName, genus, species):
     document = plantsdb.insert_one(
@@ -97,8 +82,6 @@ def update_device(_, info, id, system, source, drain, food, air, LED):
     id = document.upserted_id if document.upserted_id else id
     return devicesdb.find_one({"_id": ObjectId(id)})
 
-schema = make_executable_schema(type_defs, [query, mutation])
-
 # Create a GraphQL Playground UI for the GraphQL schema
 @application.route("/graphql", methods=["GET"])
 def graphql_playground():
@@ -117,6 +100,7 @@ def graphql_server():
     status_code = 200 if success else 400
     return jsonify(result), status_code
 
+# Serve vue app at root
 @application.route('/', methods=['GET'])
 def vue():
     return current_app.send_static_file("App.html")
@@ -126,4 +110,4 @@ if __name__ == "__main__":
     # Setting debug to True enables debug output. This line should be
     # removed before deploying a production app.
     application.debug = True
-    application.run(host="0.0.0.0")
+    application.run(host=HOST)
